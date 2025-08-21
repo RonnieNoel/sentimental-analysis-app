@@ -1,0 +1,346 @@
+{
+  "name": "knowledge base",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fd31a588-faa2-49ab-94dd-354c5ec73c23",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input: Twitter API response with geo data\n// Output: Cleaned tweets array with location info\n\nconst tweets = items[0].json.data || [];\nconst users = items[0].json.includes?.users || [];\nconst places = items[0].json.includes?.places || [];\n\n// Map of author_id → user info\nconst userMap = {};\nfor (const u of users) {\n  userMap[u.id] = {\n    username: u.username,\n    user_location: u.location || null\n  };\n}\n\n// Map of place_id → place info\nconst placeMap = {};\nfor (const p of places) {\n  placeMap[p.id] = {\n    full_name: p.full_name,\n    country: p.country,\n    place_type: p.place_type,\n    coordinates: p.geo?.bbox || null\n  };\n}\n\n// Uganda district mapping function\nfunction mapToUgandanDistrict(locationString, coordinates) {\n  if (!locationString && !coordinates) return null;\n  \n  const location = (locationString || '').toLowerCase();\n  \n  // Complete Uganda districts mapping (146 districts as of 2024)\n  const districtMap = {\n    // Central Region\n    'kampala': 'Kampala',\n    'wakiso': 'Wakiso',\n    'mukono': 'Mukono',\n    'mpigi': 'Mpigi',\n    'butambala': 'Butambala',\n    'gomba': 'Gomba',\n    'kalangala': 'Kalangala',\n    'kalungu': 'Kalungu',\n    'kayunga': 'Kayunga',\n    'kiboga': 'Kiboga',\n    'kyankwanzi': 'Kyankwanzi',\n    'luwero': 'Luwero',\n    'lwengo': 'Lwengo',\n    'lyantonde': 'Lyantonde',\n    'masaka': 'Masaka',\n    'mityana': 'Mityana',\n    'mubende': 'Mubende',\n    'nakaseke': 'Nakaseke',\n    'nakasongola': 'Nakasongola',\n    'rakai': 'Rakai',\n    'sembabule': 'Sembabule',\n    'entebbe': 'Wakiso', // Entebbe is in Wakiso\n    'bukomansimbi': 'Bukomansimbi',\n    'kassanda': 'Kassanda',\n    \n    // Eastern Region\n    'jinja': 'Jinja',\n    'iganga': 'Iganga',\n    'kamuli': 'Kamuli',\n    'mbale': 'Mbale',\n    'tororo': 'Tororo',\n    'busia': 'Busia',\n    'pallisa': 'Pallisa',\n    'soroti': 'Soroti',\n    'kumi': 'Kumi',\n    'katakwi': 'Katakwi',\n    'kapchorwa': 'Kapchorwa',\n    'sironko': 'Sironko',\n    'budaka': 'Budaka',\n    'bududa': 'Bududa',\n    'butaleja': 'Butaleja',\n    'buyende': 'Buyende',\n    'kaliro': 'Kaliro',\n    'luuka': 'Luuka',\n    'mayuge': 'Mayuge',\n    'namayingo': 'Namayingo',\n    'namutumba': 'Namutumba',\n    'bugiri': 'Bugiri',\n    'manafwa': 'Manafwa',\n    'kibuku': 'Kibuku',\n    'bulambuli': 'Bulambuli',\n    'bukedea': 'Bukedea',\n    'kween': 'Kween',\n    'serere': 'Serere',\n    'ngora': 'Ngora',\n    'amuria': 'Amuria',\n    'kapelebyong': 'Kapelebyong',\n    'kalaki': 'Kalaki',\n    \n    // Northern Region\n    'gulu': 'Gulu',\n    'lira': 'Lira',\n    'arua': 'Arua',\n    'kitgum': 'Kitgum',\n    'pader': 'Pader',\n    'yumbe': 'Yumbe',\n    'adjumani': 'Adjumani',\n    'moyo': 'Moyo',\n    'nebbi': 'Nebbi',\n    'zombo': 'Zombo',\n    'koboko': 'Koboko',\n    'maracha': 'Maracha',\n    'oyam': 'Oyam',\n    'apac': 'Apac',\n    'kole': 'Kole',\n    'dokolo': 'Dokolo',\n    'amolatar': 'Amolatar',\n    'alebtong': 'Alebtong',\n    'otuke': 'Otuke',\n    'agago': 'Agago',\n    'lamwo': 'Lamwo',\n    'nwoya': 'Nwoya',\n    'omoro': 'Omoro',\n    'pakwach': 'Pakwach',\n    'kwania': 'Kwania',\n    'madi-okollo': 'Madi-Okollo',\n    'terego': 'Terego',\n    \n    // Karamoja Sub-region (Part of Northern)\n    'moroto': 'Moroto',\n    'kotido': 'Kotido',\n    'abim': 'Abim',\n    'kaabong': 'Kaabong',\n    'nakapiripirit': 'Nakapiripirit',\n    'amudat': 'Amudat',\n    'napak': 'Napak',\n    'nabilatuk': 'Nabilatuk',\n    'karenga': 'Karenga',\n    \n    // Western Region\n    'mbarara': 'Mbarara',\n    'ntungamo': 'Ntungamo',\n    'bushenyi': 'Bushenyi',\n    'hoima': 'Hoima',\n    'kasese': 'Kasese',\n    'kabale': 'Kabale',\n    'bundibugyo': 'Bundibugyo',\n    'kabarole': 'Kabarole',\n    'kamwenge': 'Kamwenge',\n    'kisoro': 'Kisoro',\n    'masindi': 'Masindi',\n    'rukungiri': 'Rukungiri',\n    'fort portal': 'Kabarole', // Fort Portal is in Kabarole\n    'ibanda': 'Ibanda',\n    'isingiro': 'Isingiro',\n    'kiruhura': 'Kiruhura',\n    'kyenjojo': 'Kyenjojo',\n    'mitooma': 'Mitooma',\n    'rubirizi': 'Rubirizi',\n    'sheema': 'Sheema',\n    'buhweju': 'Buhweju',\n    'buliisa': 'Buliisa',\n    'ntoroko': 'Ntoroko',\n    'kiryandongo': 'Kiryandongo',\n    'kyegegwa': 'Kyegegwa',\n    'kanungu': 'Kanungu',\n    'rubanda': 'Rubanda',\n    'rukiga': 'Rukiga',\n    'kagadi': 'Kagadi',\n    'kakumiro': 'Kakumiro',\n    'kibaale': 'Kibaale',\n    'kikuube': 'Kikuube',\n    'rwampara': 'Rwampara',\n    'kazo': 'Kazo',\n    'rubirizi': 'Rubirizi',\n    \n    // Teso Sub-region (Part of Eastern)\n    'amuria': 'Amuria',\n    'katakwi': 'Katakwi',\n    'soroti': 'Soroti',\n    'kumi': 'Kumi',\n    'bukedea': 'Bukedea',\n    'ngora': 'Ngora',\n    'serere': 'Serere',\n    'kapelebyong': 'Kapelebyong',\n    'kalaki': 'Kalaki',\n    \n    // Ankole Sub-region (Part of Western)\n    'mbarara': 'Mbarara',\n    'ntungamo': 'Ntungamo',\n    'bushenyi': 'Bushenyi',\n    'ibanda': 'Ibanda',\n    'isingiro': 'Isingiro',\n    'kiruhura': 'Kiruhura',\n    'mitooma': 'Mitooma',\n    'rubirizi': 'Rubirizi',\n    'sheema': 'Sheema',\n    'buhweju': 'Buhweju',\n    'rwampara': 'Rwampara',\n    'kazo': 'Kazo',\n    \n    // Buganda Sub-region (Part of Central)\n    'kampala': 'Kampala',\n    'wakiso': 'Wakiso',\n    'mukono': 'Mukono',\n    'mpigi': 'Mpigi',\n    'butambala': 'Butambala',\n    'gomba': 'Gomba',\n    'kalangala': 'Kalangala',\n    'kalungu': 'Kalungu',\n    'kayunga': 'Kayunga',\n    'kiboga': 'Kiboga',\n    'kyankwanzi': 'Kyankwanzi',\n    'luwero': 'Luwero',\n    'lwengo': 'Lwengo',\n    'lyantonde': 'Lyantonde',\n    'masaka': 'Masaka',\n    'mityana': 'Mityana',\n    'mubende': 'Mubende',\n    'nakaseke': 'Nakaseke',\n    'nakasongola': 'Nakasongola',\n    'rakai': 'Rakai',\n    'sembabule': 'Sembabule'\n  };\n  \n  for (const [key, district] of Object.entries(districtMap)) {\n    if (location.includes(key)) {\n      return district;\n    }\n  }\n  \n  // If coordinates available, could add coordinate-based mapping here\n  \n  return 'Unknown';\n}\n\nreturn tweets.map(t => {\n  const userInfo = userMap[t.author_id] || { username: \"unknown\", user_location: null };\n  const placeInfo = t.geo?.place_id ? placeMap[t.geo.place_id] : null;\n  \n  // Determine location from geo data or user profile\n  let detectedLocation = null;\n  let coordinates = null;\n  let district = null;\n  \n  if (placeInfo) {\n    detectedLocation = placeInfo.full_name;\n    coordinates = placeInfo.coordinates;\n    district = mapToUgandanDistrict(placeInfo.full_name, coordinates);\n  } else if (userInfo.user_location) {\n    detectedLocation = userInfo.user_location;\n    district = mapToUgandanDistrict(userInfo.user_location, null);\n  }\n  \n  return {\n    json: {\n      tweet_id: t.id,\n      text: t.text,\n      username: userInfo.username,\n      created_at: t.created_at,\n      retweet_count: t.public_metrics?.retweet_count || 0,\n      reply_count: t.public_metrics?.reply_count || 0,\n      like_count: t.public_metrics?.like_count || 0,\n      quote_count: t.public_metrics?.quote_count || 0,\n      url: `https://twitter.com/${userInfo.username}/status/${t.id}`,\n      // Geo-location fields\n      geo_location: detectedLocation,\n      coordinates: coordinates,\n      district: district,\n      user_profile_location: userInfo.user_location,\n      has_precise_geo: !!t.geo?.coordinates\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "6833b0da-5608-43ca-b4d4-a9b039cadfcb",
+      "name": "Noramlize Tweets"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({\n  json: {\n    pageContent: `Tweet from @${item.json.username}: ${item.json.text}`,\n    metadata: {\n      tweet_id: item.json.tweet_id,\n      username: item.json.username,\n      created_at: item.json.created_at,\n      url: item.json.url,\n      metrics: {\n        likes: item.json.like_count,\n        retweets: item.json.retweet_count,\n        replies: item.json.reply_count\n      }\n    }\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        0
+      ],
+      "id": "74c1160b-6b44-4bdd-8e59-34f6b9f23630",
+      "name": "Convert Tweets"
+    },
+    {
+      "parameters": {
+        "url": "https://api.twitter.com/2/tweets/search/recent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "NRM Uganda OR National Resistance Movement OR Museveni"
+            },
+            {
+              "name": "tweet.fields",
+              "value": "created_at,author_id,public_metrics"
+            },
+            {
+              "name": "expansions",
+              "value": "author_id"
+            },
+            {
+              "name": "user.fields",
+              "value": "username"
+            },
+            {
+              "name": "max_results",
+              "value": "10"
+            },
+            {
+              "name": "place.fields",
+              "value": "full_name,country,place_type,geo"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer AAAAAAAAAAAAAAAAAAAAAIx%2B3gEAAAAAhI9sgtTL8j%2BoZttm%2F%2Bjqy%2BRHMaQ%3DgXvbCAP8UN7VJx4HIp9nYQT8QHajKpqlRn8Qxm2BZVRlVc4TKz "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "329f3de6-9ab9-4b2a-a160-ff97499dc3db",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "nrm_tweets_kb",
+          "mode": "list",
+          "cachedResultName": "nrm_tweets_kb"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tweet_id": "={{ $json.metadata.tweet_id }}",
+            "username": "={{ $json.metadata.username }}",
+            "text": "={{ $('Noramlize Tweets').item.json.text }}",
+            "created_at": "={{ $json.metadata.created_at }}",
+            "retweet_count": "={{ $json.metadata.metrics.retweets }}",
+            "reply_count": "={{ $json.metadata.metrics.replies }}",
+            "like_count": "={{ $json.metadata.metrics.likes }}",
+            "url": "={{ $json.metadata.url }}",
+            "quote_count": "={{ $('Noramlize Tweets').item.json.quote_count }}",
+            "geo_location": "={{ $('Noramlize Tweets').item.json.geo_location }}",
+            "coordinates": "={{ $('Noramlize Tweets').item.json.coordinates }}",
+            "district": "={{ $('Noramlize Tweets').item.json.district }}",
+            "user_profile_location": "={{ $('Noramlize Tweets').item.json.user_profile_location }}",
+            "has_precise_geo": "={{ $('Noramlize Tweets').item.json.has_precise_geo }}"
+          },
+          "matchingColumns": [
+            "tweet_id"
+          ],
+          "schema": [
+            {
+              "id": "tweet_id",
+              "displayName": "tweet_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "retweet_count",
+              "displayName": "retweet_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "reply_count",
+              "displayName": "reply_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "like_count",
+              "displayName": "like_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "quote_count",
+              "displayName": "quote_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "geo_location",
+              "displayName": "geo_location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "coordinates",
+              "displayName": "coordinates",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "district",
+              "displayName": "district",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "user_profile_location",
+              "displayName": "user_profile_location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "has_precise_geo",
+              "displayName": "has_precise_geo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        896,
+        0
+      ],
+      "id": "a5ad2f56-bfc5-4aad-b62e-6cde6ce31042",
+      "name": "Insert or update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "utHamYLFGFwgg0nX",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Noramlize Tweets": {
+      "main": [
+        [
+          {
+            "node": "Convert Tweets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Tweets": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Noramlize Tweets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8b075416-12c4-4066-8ad2-537f776492e4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "85ec7e25d682d2b9092f22dcca4866c9ff8a7584658c19cdb517e1295c11f4d7"
+  },
+  "id": "imSDfMcLYlRo1OcA",
+  "tags": []
+}

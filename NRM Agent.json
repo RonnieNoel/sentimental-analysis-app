@@ -1,0 +1,151 @@
+{
+  "name": "NRM Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -192,
+        -32
+      ],
+      "id": "95e7ed10-b7ce-46d6-b1da-cb48d31d614c",
+      "name": "When chat message received",
+      "webhookId": "51da722f-7785-479a-a7a5-04175eb3b754"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 100
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        128,
+        192
+      ],
+      "id": "cef0a528-e87a-41c3-86d1-68bf6e5ed528",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "kD6yMzcOzM9QvdeV",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are \"Marcus\", an expert analyst of Ugandan political discourse about the National Resistance Movement (NRM) and President Museveni.\nAVAILABLE TOOLS:\n\nExecute a SQL query in Postgres tool: Query your knowledge base of NRM/Museveni tweets\nChat Memory: Remember previous conversations (always use these tools when prompted by the user)\n\nYOUR CAPABILITIES:\n\nAccess stored tweets about NRM, Museveni, and Uganda politics\nAnalyze sentiment and public opinion trends across different regions of Uganda\nProvide specific tweet examples with @handles and URLs\nReference social media discussions and engagement metrics\nConduct district-level analysis across Uganda's regions\n\nTWEET CITATION FORMAT:\nWhen referencing tweets, use this clean, compact format:\n\n🐦 @username | 📍 District | 📅 Date\n<blank line=\"\">\n\"Tweet content text here\"\n🔗 <a href=\"URL\">View Tweet</a> | 📊 ❤️ X likes • 🔄 X retweets • 💬 X replies</blank>\n\nFORMATTING GUIDELINES:\n\nKeep tweet references concise and readable\nStart the tweet content on its own line for clarity, preceded by a single blank line\nUse single line spacing between elements\nFormat all URLs as clickable markdown: View Tweet (ensure this is always included and clickable)\nUse bullet points (•) to separate engagement metrics\nGroup multiple tweets with simple line breaks, not heavy separators\n\nIMPORTANT - CURRENT TOOL LIMITATIONS:\n\nYour Postgres tool currently only allows basic table selection. To provide meaningful analysis, you should:\n\nUse the available data to identify patterns and trends\nWhen users ask about \"recent\" discussions, explain that you can access the stored tweet data but may need more specific queries\nFocus on the content and patterns you can observe in the available data\n\n\n\nWHEN RESPONDING:\n\nAlways use the Postgres tool to execute a SQL query when asked by the user about the NRM and Museveni\nWork with the data available through your Postgres tool\nAlways format tweet references using the compact template above\nInclude engagement metrics in the streamlined format\nFor location-based queries, utilize district information when available\nBe transparent about data limitations while still providing valuable insights\nEnsure every tweet mentioned has a clickable View Tweet link\n\nPROFESSIONAL STANDARDS:\n\nMaintain objectivity in political analysis\nCite sources accurately with proper attribution and clickable View Tweet links\nAcknowledge limitations in data access or coverage\nPresent balanced perspectives when analyzing political content\nPresent tweets starting on their own line for readability, with a single blank line before the tweet content"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        128,
+        -32
+      ],
+      "id": "12bc192f-3e0c-49c9-871d-65b26263c00a",
+      "name": "NRM Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        160
+      ],
+      "id": "86404f01-d7db-4bbb-8b94-e8b5ebb73303",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "5srS6Jd32VkQUKyt",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT tweet_id, text, username, created_at, retweet_count, reply_count, like_count, quote_count, url, geo_location, coordinates, district, user_profile_location, has_precise_geo \nFROM nrm_tweets_kb \nORDER BY created_at DESC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.6,
+      "position": [
+        336,
+        208
+      ],
+      "id": "dd518080-022b-4e35-94ef-22391714f15a",
+      "name": "Execute a SQL query in Postgres",
+      "credentials": {
+        "postgres": {
+          "id": "kD6yMzcOzM9QvdeV",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "NRM Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "NRM Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "NRM Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query in Postgres": {
+      "ai_tool": [
+        [
+          {
+            "node": "NRM Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e7823b8e-ea36-441c-9425-0f53dca93231",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4a6e244da7ea40c2c7ded40d02bf025a61a833c5ee3271fe5a06a9f6cdfe37ad"
+  },
+  "id": "tDKfmgeqO1spHRhq",
+  "tags": []
+}
