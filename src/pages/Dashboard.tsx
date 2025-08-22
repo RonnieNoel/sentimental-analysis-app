@@ -9,6 +9,18 @@ import UgandaMap from '../components/UgandaMap'
 import { supabase } from '../lib/supabase'
 import { Tweet, SentimentData, SentimentDistribution } from '../lib/supabase'
 
+interface AgentTweetResponse {
+  "Tweet by": string;
+  "Text Content": string;
+  "Reply Count": string;
+  "Like Count": string;
+  "Tweet URL": string;
+  "Date": string;
+  "Profile User Name": string;
+  "Profile Description": string;
+  "Sentiment": string;
+}
+
 const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
@@ -85,7 +97,8 @@ const Dashboard: React.FC = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: TrendingUp },
     { id: 'tweets', label: 'Tweets', icon: BarChart3 },
-    { id: 'map', label: 'Map', icon: MapPin }
+    { id: 'map', label: 'Map', icon: MapPin },
+    { id: 'custom-search', label: 'Custom Search', icon: Search }
   ]
 
   return (
@@ -238,6 +251,15 @@ const Dashboard: React.FC = () => {
               <UgandaMap />
             </div>
           )}
+
+          {activeTab === 'custom-search' && (
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Custom Search
+              </h3>
+              <CustomSearchTab />
+            </div>
+          )}
         </div>
       </main>
 
@@ -246,5 +268,116 @@ const Dashboard: React.FC = () => {
     </div>
   )
 }
+
+const CustomSearchTab: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [webhookResponse, setWebhookResponse] = useState<AgentTweetResponse[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSearch = async () => {
+    setLoading(true)
+    setError(null)
+    setWebhookResponse(null)
+    try {
+      const response = await fetch(`https://nrm-agent.app.n8n.cloud/webhook/myagent?message=${encodeURIComponent(searchQuery)}`, {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: AgentTweetResponse[] = await response.json()
+      setWebhookResponse(data)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col space-y-4">
+      <div className="flex space-x-2">
+        <input
+          type="text"
+          className="input-field flex-grow"
+          placeholder="Enter your search query..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <button 
+          onClick={handleSearch} 
+          className="btn-primary flex items-center space-x-2"
+          disabled={loading}
+        >
+          {loading && (
+            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          )}
+          <Search className="h-4 w-4" />
+          <span>Search</span>
+        </button>
+      </div>
+      {error && <p className="text-danger-600">Error: {error}</p>}
+      {webhookResponse && (
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {webhookResponse.map((tweet, index) => (
+            <TweetCard key={index} tweet={tweet} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface TweetCardProps {
+  tweet: AgentTweetResponse;
+}
+
+const TweetCard: React.FC<TweetCardProps> = ({ tweet }) => {
+  const getSentimentColor = (sentiment: string) => {
+    switch (sentiment.toLowerCase()) {
+      case 'positive':
+        return 'bg-success-100 text-success-800';
+      case 'negative':
+        return 'bg-danger-100 text-danger-800';
+      case 'neutral':
+        return 'bg-warning-100 text-warning-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <div className="card p-4 flex flex-col space-y-3">
+      <div className="flex justify-between items-center">
+        <span className="font-semibold text-primary-700">@{tweet["Profile User Name"]}</span>
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getSentimentColor(tweet.Sentiment)}`}>
+          {tweet.Sentiment}
+        </span>
+      </div>
+      <p className="text-gray-800 text-sm flex-grow">{tweet["Text Content"]}</p>
+      <div className="flex justify-between items-center text-xs text-gray-500">
+        <span>Likes: {tweet["Like Count"]}</span>
+        <span>Replies: {tweet["Reply Count"]}</span>
+        <span>Date: {new Date(tweet.Date).toLocaleDateString()}</span>
+      </div>
+      {tweet["Tweet URL"] && (
+        <a 
+          href={tweet["Tweet URL"]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary-600 hover:underline text-sm self-start"
+        >
+          Read more on Twitter
+        </a>
+      )}
+    </div>
+  );
+};
 
 export default Dashboard
