@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { LogOut, Search, Filter, TrendingUp, Users, MapPin, BarChart3 } from 'lucide-react'
+import { LogOut, Search, Filter, TrendingUp, Users, MapPin, BarChart3, MonitorPlay } from 'lucide-react'
 import SentimentTimeline from '../components/SentimentTimeline'
 import SentimentPieChart from '../components/SentimentPieChart'
 import TweetsTable from '../components/TweetsTable'
@@ -98,7 +98,8 @@ const Dashboard: React.FC = () => {
     { id: 'overview', label: 'Overview', icon: TrendingUp },
     { id: 'tweets', label: 'Tweets', icon: BarChart3 },
     { id: 'map', label: 'Map', icon: MapPin },
-    { id: 'custom-search', label: 'Custom Search', icon: Search }
+    { id: 'custom-search', label: 'Custom Search', icon: Search },
+    { id: 'youtube', label: 'YouTube', icon: MonitorPlay }
   ]
 
   return (
@@ -260,6 +261,14 @@ const Dashboard: React.FC = () => {
               <CustomSearchTab />
             </div>
           )}
+          {activeTab === 'youtube' && (
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                YouTube Search
+              </h3>
+              <YouTubeSearchTab />
+            </div>
+          )}
         </div>
       </main>
 
@@ -376,6 +385,153 @@ const TweetCard: React.FC<TweetCardProps> = ({ tweet }) => {
           Read more on Twitter
         </a>
       )}
+    </div>
+  );
+};
+
+interface YouTubeVideo {
+  Title: string;
+  Channel: string;
+  "Video URL": string;
+  "Publish Date": string;
+  Description: string;
+  Sentiment: string;
+}
+
+interface YouTubeAgentResponse {
+  success?: boolean;
+  message?: string;
+  error?: string;
+  videos?: YouTubeVideo[];
+}
+
+const YouTubeSearchTab: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [youtubeResponse, setYoutubeResponse] = useState<YouTubeAgentResponse | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSearch = async () => {
+    setLoading(true)
+    setError(null)
+    setYoutubeResponse(null)
+    try {
+      const response = await fetch(`https://nrm-agent.app.n8n.cloud/webhook-test/youtubeagent?message=${encodeURIComponent(searchQuery)}`, {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data: YouTubeVideo[] = await response.json()
+      setYoutubeResponse({ videos: data })
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col space-y-4">
+      <div className="flex space-x-2">
+        <input
+          type="text"
+          className="input-field flex-grow"
+          placeholder="Search YouTube videos (e.g., 'latest tech reviews MKBHD' or 'Uganda elections 2025')..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <button 
+          onClick={handleSearch} 
+          className="btn-primary flex items-center space-x-2"
+          disabled={loading}
+        >
+          {loading && (
+            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          )}
+          <Search className="h-4 w-4" />
+          <span>Search</span>
+        </button>
+      </div>
+      {error && <p className="text-danger-600">Error: {error}</p>}
+      {youtubeResponse && youtubeResponse.videos && youtubeResponse.videos.length > 0 && (
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {youtubeResponse.videos.map((video, index) => (
+            <VideoCard key={index} video={video} />
+          ))}
+        </div>
+      )}
+      {youtubeResponse && youtubeResponse.videos && youtubeResponse.videos.length === 0 && !error && (
+        <p className="text-gray-600">No videos found</p>
+      )}
+    </div>
+  )
+}
+
+interface VideoCardProps {
+  video: YouTubeVideo;
+}
+
+const VideoCard: React.FC<VideoCardProps> = ({ video }) => {
+  const getSentimentColor = (sentiment: string) => {
+    switch (sentiment.toLowerCase()) {
+      case 'positive':
+        return 'bg-success-100 text-success-800';
+      case 'negative':
+        return 'bg-danger-100 text-danger-800';
+      case 'neutral':
+        return 'bg-warning-100 text-warning-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getVideoId = (url: string) => {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+    return match ? match[1] : null;
+  };
+
+  const videoId = getVideoId(video["Video URL"]);
+  const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+
+  return (
+    <div className="card p-4 flex flex-col space-y-3">
+      {embedUrl && (
+        <div className="w-full h-48 mb-3">
+          <iframe
+            src={embedUrl}
+            title={video.Title}
+            className="w-full h-full rounded-md"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      )}
+      <div className="flex justify-between items-start mb-2">
+        <h4 className="font-semibold text-primary-700 text-lg line-clamp-2 flex-grow mr-2">{video.Title}</h4>
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getSentimentColor(video.Sentiment)}`}>
+          {video.Sentiment}
+        </span>
+      </div>
+      <p className="text-gray-600 text-sm">Channel: {video.Channel}</p>
+      <p className="text-gray-800 text-sm flex-grow line-clamp-3">{video.Description}</p>
+      <div className="flex justify-between items-center text-xs text-gray-500">
+        <span>Published: {video["Publish Date"]}</span>
+      </div>
+      <a 
+        href={video["Video URL"]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary-600 hover:underline text-sm self-start"
+      >
+        Watch on YouTube
+      </a>
     </div>
   );
 };
