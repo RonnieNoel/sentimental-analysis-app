@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { LogOut, Search, Filter, TrendingUp, Users, MapPin, BarChart3, MonitorPlay } from 'lucide-react'
+import { LogOut, Search, Filter, TrendingUp, Users, MapPin, BarChart3, MonitorPlay, CheckCircle } from 'lucide-react'
 import SentimentTimeline from '../components/SentimentTimeline'
 import SentimentPieChart from '../components/SentimentPieChart'
 import TweetsTable from '../components/TweetsTable'
@@ -29,7 +29,7 @@ const Dashboard: React.FC = () => {
     totalTweets: 0,
     totalUsers: 0,
     averageSentiment: 0,
-    districtsCovered: 0
+    factCheckedTweets: 0
   })
 
   useEffect(() => {
@@ -50,10 +50,11 @@ const Dashboard: React.FC = () => {
         .from('nrm_tweets_kb')
         .select('username', { count: 'exact', head: true })
 
-      // Get unique districts count
-      const { count: districtsCount } = await supabase
+      // Get fact-checked tweets count
+      const { count: factCheckedCount } = await supabase
         .from('nrm_tweets_kb')
-        .select('district', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
+        .eq('fact_checked', true)
 
       // Get average sentiment (sentiment_score is now categorical)
       const { data: sentimentData } = await supabase
@@ -81,7 +82,7 @@ const Dashboard: React.FC = () => {
         totalTweets: tweetsCount || 0,
         totalUsers: usersCount || 0,
         averageSentiment: Math.round(avgSentiment * 100) / 100,
-        districtsCovered: districtsCount || 0
+        factCheckedTweets: factCheckedCount || 0
       })
     } catch (error) {
       console.error('Error fetching dashboard stats:', error)
@@ -179,13 +180,13 @@ const Dashboard: React.FC = () => {
 
           <div className="card p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-danger-100 rounded-xl">
-                <MapPin className="h-6 w-6 text-danger-600" />
+              <div className="p-2 bg-primary-100 rounded-xl">
+                <CheckCircle className="h-6 w-6 text-primary-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Districts</p>
+                <p className="text-sm font-medium text-gray-600">Fact-checked Tweets</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : stats.districtsCovered}
+                  {loading ? '...' : stats.factCheckedTweets.toLocaleString()}
                 </p>
               </div>
             </div>
