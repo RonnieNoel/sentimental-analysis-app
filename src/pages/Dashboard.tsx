@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+<<<<<<< HEAD
 import { LogOut, Search, Filter, TrendingUp, Users, MapPin, BarChart3, MonitorPlay, CheckCircle } from 'lucide-react'
+=======
+import { LogOut, Search, Filter, TrendingUp, Users, BarChart3, MonitorPlay } from 'lucide-react'
+>>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
 import SentimentTimeline from '../components/SentimentTimeline'
 import SentimentPieChart from '../components/SentimentPieChart'
 import TweetsTable from '../components/TweetsTable'
-import UgandaMap from '../components/UgandaMap'
+// Removed UgandaMap
 // import AIAssistant from '../components/AIAssistant'
 import { supabase } from '../lib/supabase'
 import { Tweet, SentimentData, SentimentDistribution } from '../lib/supabase'
@@ -98,7 +102,6 @@ const Dashboard: React.FC = () => {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: TrendingUp },
     { id: 'tweets', label: 'Tweets', icon: BarChart3 },
-    { id: 'map', label: 'Map', icon: MapPin },
     { id: 'custom-search', label: 'Custom Search', icon: Search },
     { id: 'youtube', label: 'YouTube', icon: MonitorPlay }
   ]
@@ -180,8 +183,13 @@ const Dashboard: React.FC = () => {
 
           <div className="card p-6">
             <div className="flex items-center">
+<<<<<<< HEAD
               <div className="p-2 bg-primary-100 rounded-xl">
                 <CheckCircle className="h-6 w-6 text-primary-600" />
+=======
+              <div className="p-2 bg-danger-100 rounded-xl">
+                <TrendingUp className="h-6 w-6 text-danger-600" />
+>>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Fact-checked Tweets</p>
@@ -245,14 +253,7 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'map' && (
-            <div className="card p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Geographic Distribution
-              </h3>
-              <UgandaMap />
-            </div>
-          )}
+          
 
           {activeTab === 'custom-search' && (
             <div className="card p-6">

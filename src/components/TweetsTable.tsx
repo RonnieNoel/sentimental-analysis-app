@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Search, Filter, ChevronLeft, ChevronRight, ExternalLink, MapPin, User } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, ExternalLink, User } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { Tweet } from '../lib/supabase'
 import { format } from 'date-fns'
@@ -7,15 +7,29 @@ import { format } from 'date-fns'
 const TweetsTable: React.FC = () => {
   const [tweets, setTweets] = useState<Tweet[]>([])
   const [loading, setLoading] = useState(true)
+<<<<<<< HEAD
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'username' | 'date' | 'likes' | 'retweets'>('all')
+=======
+  const [tweetQuery, setTweetQuery] = useState('')
+  const [userQuery, setUserQuery] = useState('')
+  const [sentimentFilter, setSentimentFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+>>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [itemsPerPage] = useState(20)
 
   useEffect(() => {
     fetchTweets()
+<<<<<<< HEAD
   }, [searchTerm, filterType, currentPage])
+=======
+  }, [tweetQuery, userQuery, sentimentFilter, dateFrom, dateTo, currentPage])
+
+  // Removed district fetching
+>>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
 
   const fetchTweets = async () => {
     try {
@@ -25,6 +39,7 @@ const TweetsTable: React.FC = () => {
         .from('nrm_tweets_kb')
         .select('*', { count: 'exact' })
 
+<<<<<<< HEAD
       // Apply search based on selected filter type
       const term = searchTerm.trim()
       if (term) {
@@ -83,7 +98,36 @@ const TweetsTable: React.FC = () => {
             }
           }
         }
+=======
+      // Apply tweet text filter
+      if (tweetQuery) {
+        query = query.ilike('text', `%${tweetQuery}%`)
       }
+
+      // Apply user filter
+      if (userQuery) {
+        query = query.ilike('username', `%${userQuery}%`)
+>>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
+      }
+
+      // Apply sentiment filter
+      if (sentimentFilter) {
+        query = query.eq('sentiment_score', sentimentFilter)
+      }
+
+      // Apply date range filter
+      if (dateFrom) {
+        const fromIso = new Date(dateFrom).toISOString()
+        query = query.gte('created_at', fromIso)
+      }
+      if (dateTo) {
+        const toDate = new Date(dateTo)
+        // set to end of day for inclusive filter
+        toDate.setHours(23, 59, 59, 999)
+        query = query.lte('created_at', toDate.toISOString())
+      }
+
+      // District filter removed
 
       // Apply pagination
       const from = (currentPage - 1) * itemsPerPage
@@ -124,9 +168,20 @@ const TweetsTable: React.FC = () => {
     setCurrentPage(1)
   }
 
+<<<<<<< HEAD
   const clearFilters = () => {
     setSearchTerm('')
     setFilterType('all')
+=======
+  // District selection removed
+
+  const clearFilters = () => {
+    setTweetQuery('')
+    setUserQuery('')
+    setSentimentFilter('')
+    setDateFrom('')
+    setDateTo('')
+>>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
     setCurrentPage(1)
   }
 
@@ -141,12 +196,13 @@ const TweetsTable: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <form onSubmit={handleSearch} className="flex-1">
-          <div className="relative">
+      <form onSubmit={handleSearch} className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="relative min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
+<<<<<<< HEAD
               placeholder={
                 filterType === 'all' ? 'Search tweets or usernames...'
                 : filterType === 'username' ? 'Search by username...'
@@ -157,10 +213,55 @@ const TweetsTable: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="input-field pl-10"
+=======
+              placeholder="Filter by tweet text..."
+              value={tweetQuery}
+              onChange={(e) => setTweetQuery(e.target.value)}
+              className="input-field pl-10 w-full"
+>>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
             />
           </div>
-        </form>
 
+          <div className="min-w-0">
+            <input
+              type="text"
+              placeholder="Filter by user..."
+              value={userQuery}
+              onChange={(e) => setUserQuery(e.target.value)}
+              className="input-field w-full"
+            />
+          </div>
+
+          <div className="min-w-0">
+            <select
+              value={sentimentFilter}
+              onChange={(e) => setSentimentFilter(e.target.value)}
+              className="input-field w-full"
+            >
+              <option value="">All sentiments</option>
+              <option value="Positive">Positive</option>
+              <option value="Neutral">Neutral</option>
+              <option value="Negative">Negative</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 min-w-0">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="input-field w-full"
+            />
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="input-field w-full"
+            />
+          </div>
+        </div>
+
+<<<<<<< HEAD
         <div className="flex gap-2 items-center">
           <select
             value={filterType}
@@ -180,14 +281,26 @@ const TweetsTable: React.FC = () => {
           >
             Clear
           </button>
+=======
+        <div className="flex gap-2">
+          <button type="submit" className="btn-primary">Apply</button>
+          <button type="button" onClick={clearFilters} className="btn-secondary">Clear</button>
+>>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
         </div>
-      </div>
+      </form>
 
       {/* Results Count */}
       <div className="flex justify-between items-center text-sm text-gray-600">
         <span>
           Showing {tweets.length} tweets
+<<<<<<< HEAD
           {searchTerm && ` for "${searchTerm}"`}
+=======
+          {tweetQuery && ` for tweet "${tweetQuery}"`}
+          {userQuery && ` by user "${userQuery}"`}
+          {sentimentFilter && ` with sentiment ${sentimentFilter}`}
+          {(dateFrom || dateTo) && ` between ${dateFrom || '...'} and ${dateTo || '...'}`}
+>>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
         </span>
         <span>Page {currentPage} of {totalPages}</span>
       </div>
@@ -199,7 +312,7 @@ const TweetsTable: React.FC = () => {
             <tr className="border-b border-gray-200">
               <th className="text-left py-3 px-4 font-medium text-gray-700">Tweet</th>
               <th className="text-left py-3 px-4 font-medium text-gray-700">User</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">District</th>
+              
               <th className="text-left py-3 px-4 font-medium text-gray-700">Sentiment</th>
               <th className="text-left py-3 px-4 font-medium text-gray-700">Engagement</th>
               <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
@@ -236,16 +349,7 @@ const TweetsTable: React.FC = () => {
                   </div>
                 </td>
                 
-                <td className="py-3 px-4">
-                  {tweet.district ? (
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-700">{tweet.district}</span>
-                    </div>
-                  ) : (
-                    <span className="text-sm text-gray-400">Unknown</span>
-                  )}
-                </td>
+                
                 
                 <td className="py-3 px-4">
                   <span className={`text-sm font-medium ${getSentimentColor(tweet.sentiment_score || undefined)}`}>
