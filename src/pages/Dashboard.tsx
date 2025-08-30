@@ -8,6 +8,8 @@ import TweetsTable from '../components/TweetsTable'
 // import AIAssistant from '../components/AIAssistant'
 import { supabase } from '../lib/supabase'
 import { Tweet, SentimentData, SentimentDistribution } from '../lib/supabase'
+import '@n8n/chat/style.css'
+import { createChat } from '@n8n/chat'
 
 interface AgentTweetResponse {
   "Tweet by": string;
@@ -176,6 +178,77 @@ const Dashboard: React.FC = () => {
 
     return () => clearInterval(timer)
   }, [autoRefreshEnabled])
+
+  // Handle AI Chat creation and cleanup based on authentication
+  useEffect(() => {
+    let chatCreated = false
+
+    if (user) {
+      // Create the chat when user is authenticated with error handling and delay
+      const timer = setTimeout(() => {
+        try {
+          createChat({
+            webhookUrl: 'https://nrm-agent.app.n8n.cloud/webhook/51da722f-7785-479a-a7a5-04175eb3b754/chat'
+          })
+          chatCreated = true
+        } catch (error) {
+          console.warn('Failed to create AI chat:', error)
+          // Continue without the chat if creation fails
+        }
+      }, 1000) // Delay chat creation by 1 second to let the page fully load
+
+      // Cleanup timer if component unmounts
+      return () => {
+        clearTimeout(timer)
+        if (chatCreated) {
+          // Remove any existing chat elements
+          const chatElements = document.querySelectorAll('[data-n8n-chat]')
+          chatElements.forEach(element => element.remove())
+          
+          // Remove any chat-related elements
+          const chatContainers = document.querySelectorAll('.n8n-chat-container, [id*="n8n-chat"]')
+          chatContainers.forEach(element => element.remove())
+          
+          // Remove any iframes or other chat elements
+          const iframes = document.querySelectorAll('iframe[src*="n8n"]')
+          iframes.forEach(iframe => iframe.remove())
+          
+          // Remove any chat widgets by class or ID patterns
+          const chatWidgets = document.querySelectorAll('[class*="chat"], [id*="chat"]')
+          chatWidgets.forEach(widget => {
+            if (widget.innerHTML.includes('n8n') || widget.innerHTML.includes('chat')) {
+              widget.remove()
+            }
+          })
+        }
+      }
+    }
+
+    // Cleanup function for when user logs out
+    return () => {
+      if (chatCreated) {
+        // Remove any existing chat elements
+        const chatElements = document.querySelectorAll('[data-n8n-chat]')
+        chatElements.forEach(element => element.remove())
+        
+        // Remove any chat-related elements
+        const chatContainers = document.querySelectorAll('.n8n-chat-container, [id*="n8n-chat"]')
+        chatContainers.forEach(element => element.remove())
+        
+        // Remove any iframes or other chat elements
+        const iframes = document.querySelectorAll('iframe[src*="n8n"]')
+        iframes.forEach(iframe => iframe.remove())
+        
+        // Remove any chat widgets by class or ID patterns
+        const chatWidgets = document.querySelectorAll('[class*="chat"], [id*="chat"]')
+        chatWidgets.forEach(widget => {
+          if (widget.innerHTML.includes('n8n') || widget.innerHTML.includes('chat')) {
+            widget.remove()
+          }
+        })
+      }
+    }
+  }, [user])
 
   const handleSignOut = async () => {
     await signOut()
