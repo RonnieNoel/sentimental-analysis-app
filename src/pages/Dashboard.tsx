@@ -1,10 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-<<<<<<< HEAD
-import { LogOut, Search, Filter, TrendingUp, Users, MapPin, BarChart3, MonitorPlay, CheckCircle } from 'lucide-react'
-=======
-import { LogOut, Search, Filter, TrendingUp, Users, BarChart3, MonitorPlay } from 'lucide-react'
->>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
+import { LogOut, Search, Filter, TrendingUp, Users, BarChart3, MonitorPlay, RefreshCw, Clock } from 'lucide-react'
 import SentimentTimeline from '../components/SentimentTimeline'
 import SentimentPieChart from '../components/SentimentPieChart'
 import TweetsTable from '../components/TweetsTable'
@@ -29,16 +25,82 @@ const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(true)
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+  const [nextRefresh, setNextRefresh] = useState<Date>(new Date())
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
+  const [refreshInterval, setRefreshInterval] = useState(300000) // 5 minutes default
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [stats, setStats] = useState({
     totalTweets: 0,
     totalUsers: 0,
     averageSentiment: 0,
-    factCheckedTweets: 0
+    factChecked: 0
   })
 
   useEffect(() => {
     fetchDashboardStats()
-  }, [])
+    
+    // Set up auto-refresh
+    if (autoRefreshEnabled) {
+      startAutoRefresh()
+    }
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current)
+      }
+    }
+  }, [autoRefreshEnabled, refreshInterval])
+
+  const startAutoRefresh = () => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
+    }
+    
+    if (autoRefreshEnabled) {
+      refreshIntervalRef.current = setInterval(() => {
+        fetchDashboardStats()
+      }, refreshInterval)
+      
+      // Calculate next refresh time
+      const next = new Date(Date.now() + refreshInterval)
+      setNextRefresh(next)
+    }
+  }
+
+  const stopAutoRefresh = () => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
+      refreshIntervalRef.current = null
+    }
+  }
+
+  const handleAutoRefreshToggle = () => {
+    const newState = !autoRefreshEnabled
+    setAutoRefreshEnabled(newState)
+    
+    if (newState) {
+      startAutoRefresh()
+    } else {
+      stopAutoRefresh()
+    }
+  }
+
+  const handleManualRefresh = async () => {
+    await fetchDashboardStats()
+  }
+
+  const formatTimeUntilNext = () => {
+    const now = new Date()
+    const diff = nextRefresh.getTime() - now.getTime()
+    
+    if (diff <= 0) return 'Refreshing...'
+    
+    const minutes = Math.floor(diff / 60000)
+    const seconds = Math.floor((diff % 60000) / 1000)
+    
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
 
   const fetchDashboardStats = async () => {
     try {
@@ -86,14 +148,34 @@ const Dashboard: React.FC = () => {
         totalTweets: tweetsCount || 0,
         totalUsers: usersCount || 0,
         averageSentiment: Math.round(avgSentiment * 100) / 100,
-        factCheckedTweets: factCheckedCount || 0
+        factChecked: factCheckedCount || 0
       })
+      
+      setLastRefresh(new Date())
+      
+      // Update next refresh time
+      if (autoRefreshEnabled) {
+        const next = new Date(Date.now() + refreshInterval)
+        setNextRefresh(next)
+      }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error)
     } finally {
       setLoading(false)
     }
   }
+
+  // Update countdown timer every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (autoRefreshEnabled) {
+        // Force re-render to update countdown
+        setNextRefresh(prev => new Date(prev.getTime()))
+      }
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [autoRefreshEnabled])
 
   const handleSignOut = async () => {
     await signOut()
@@ -121,7 +203,7 @@ const Dashboard: React.FC = () => {
             
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                Welcome, {user?.email}
+                 {user?.email}
               </span>
               <button
                 onClick={handleSignOut}
@@ -137,6 +219,72 @@ const Dashboard: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Refresh Controls */}
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Refresh Controls
+          </h3>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <label className="text-sm text-gray-600">Interval:</label>
+              <select
+                value={refreshInterval}
+                onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                disabled={!autoRefreshEnabled}
+              >
+                <option value={60000}>1 minute</option>
+                <option value={300000}>5 minutes</option>
+                <option value={600000}>10 minutes</option>
+                <option value={1800000}>30 minutes</option>
+                <option value={3600000}>1 hour</option>
+              </select>
+            </div>
+            <button
+              onClick={handleManualRefresh}
+              className="btn-primary flex items-center space-x-2"
+              disabled={loading}
+            >
+              {loading && (
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              )}
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh Now</span>
+            </button>
+            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <Clock className="h-4 w-4" />
+              <span>Next refresh: {formatTimeUntilNext()}</span>
+            </div>
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={autoRefreshEnabled}
+                onChange={handleAutoRefreshToggle}
+              />
+              <div className="relative">
+                <div className={`block w-10 h-6 rounded-full transition-colors duration-300 ${
+                  autoRefreshEnabled ? 'bg-primary-600' : 'bg-gray-300'
+                }`}></div>
+                <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 ${
+                  autoRefreshEnabled ? 'translate-x-4' : ''
+                }`}></div>
+              </div>
+              <span className="ml-2 text-sm">Auto-refresh</span>
+            </label>
+          </div>
+        </div>
+        
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between text-sm text-blue-800">
+            <span>Last updated: {lastRefresh.toLocaleTimeString()}</span>
+            <span>Auto-refresh: {autoRefreshEnabled ? 'ON' : 'OFF'}</span>
+          </div>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="card p-6">
@@ -183,18 +331,13 @@ const Dashboard: React.FC = () => {
 
           <div className="card p-6">
             <div className="flex items-center">
-<<<<<<< HEAD
-              <div className="p-2 bg-primary-100 rounded-xl">
-                <CheckCircle className="h-6 w-6 text-primary-600" />
-=======
               <div className="p-2 bg-danger-100 rounded-xl">
                 <TrendingUp className="h-6 w-6 text-danger-600" />
->>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Fact-checked Tweets</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : stats.factCheckedTweets.toLocaleString()}
+                  {loading ? '...' : stats.factChecked.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -291,7 +434,7 @@ const CustomSearchTab: React.FC = () => {
     setError(null)
     setWebhookResponse(null)
     try {
-      const response = await fetch(`https://nrm-agent.app.n8n.cloud/webhook/myagent?message=${encodeURIComponent(searchQuery)}`, {
+      const response = await fetch(`https://nrm-agent.app.n8n.cloud/webhook-test/myagent?message=${encodeURIComponent(searchQuery)}`, {
         method: 'GET',
       })
 
