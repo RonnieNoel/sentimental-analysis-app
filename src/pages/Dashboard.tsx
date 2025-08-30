@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { LogOut, Search, Filter, TrendingUp, Users, BarChart3, MonitorPlay, RefreshCw, Clock } from 'lucide-react'
+import { LogOut, Search, TrendingUp, Users, BarChart3, MonitorPlay, RefreshCw, Clock } from 'lucide-react'
 import SentimentTimeline from '../components/SentimentTimeline'
 import SentimentPieChart from '../components/SentimentPieChart'
 import TweetsTable from '../components/TweetsTable'
@@ -190,104 +190,120 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-soft border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <TrendingUp className="h-8 w-8 text-primary-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">
-                Uganda Sentiment Dashboard
-              </h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                 {user?.email}
-              </span>
-              <button
-                onClick={handleSignOut}
-                className="btn-secondary flex items-center space-x-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Sign Out</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+             {/* Header */}
+       <header className="bg-white shadow-soft border-b border-gray-100">
+         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+           <div className="flex justify-between items-center h-16 py-4 sm:py-0">
+             <div className="flex items-center">
+               <TrendingUp className="h-8 w-8 text-primary-600 mr-3" />
+               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                 Sentiment Dashboard
+               </h1>
+             </div>
+             
+             {/* Mobile: Just logout icon, Desktop: Full logout button with email */}
+             <div className="flex items-center space-x-4">
+               {/* Email - hidden on mobile */}
+               <span className="hidden sm:block text-sm text-gray-600">
+                  {user?.email}
+               </span>
+               
+               {/* Mobile: Icon only, Desktop: Full button */}
+               <button
+                 onClick={handleSignOut}
+                 className="sm:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                 title="Sign Out"
+               >
+                 <LogOut className="h-5 w-5" />
+               </button>
+               
+               {/* Desktop: Full button */}
+               <button
+                 onClick={handleSignOut}
+                 className="hidden sm:flex btn-secondary items-center space-x-2"
+               >
+                 <LogOut className="h-4 w-4" />
+                 <span>Sign Out</span>
+               </button>
+             </div>
+           </div>
+         </div>
+       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Refresh Controls */}
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Refresh Controls
-          </h3>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <label className="text-sm text-gray-600">Interval:</label>
-              <select
-                value={refreshInterval}
-                onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                disabled={!autoRefreshEnabled}
-              >
-                <option value={60000}>1 minute</option>
-                <option value={300000}>5 minutes</option>
-                <option value={600000}>10 minutes</option>
-                <option value={1800000}>30 minutes</option>
-                <option value={3600000}>1 hour</option>
-              </select>
-            </div>
-            <button
-              onClick={handleManualRefresh}
-              className="btn-primary flex items-center space-x-2"
-              disabled={loading}
-            >
-              {loading && (
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              )}
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh Now</span>
-            </button>
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <Clock className="h-4 w-4" />
-              <span>Next refresh: {formatTimeUntilNext()}</span>
-            </div>
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={autoRefreshEnabled}
-                onChange={handleAutoRefreshToggle}
-              />
-              <div className="relative">
-                <div className={`block w-10 h-6 rounded-full transition-colors duration-300 ${
-                  autoRefreshEnabled ? 'bg-primary-600' : 'bg-gray-300'
-                }`}></div>
-                <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 ${
-                  autoRefreshEnabled ? 'translate-x-4' : ''
-                }`}></div>
-              </div>
-              <span className="ml-2 text-sm">Auto-refresh</span>
-            </label>
-          </div>
-        </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+                 {/* Refresh Controls - Hidden on mobile */}
+         <div className="hidden sm:block">
+           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 sm:mb-6 space-y-4 lg:space-y-0">
+             <h3 className="text-lg font-semibold text-gray-900">
+               Refresh Controls
+             </h3>
+             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+               <div className="flex items-center space-x-2">
+                 <label className="text-sm text-gray-600">Interval:</label>
+                 <select
+                   value={refreshInterval}
+                   onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                   className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                   disabled={!autoRefreshEnabled}
+                 >
+                   <option value={60000}>1 minute</option>
+                   <option value={300000}>5 minutes</option>
+                   <option value={600000}>10 minutes</option>
+                   <option value={1800000}>30 minutes</option>
+                   <option value={3600000}>1 hour</option>
+                 </select>
+               </div>
+               <button
+                 onClick={handleManualRefresh}
+                 className="btn-primary flex items-center space-x-2 w-full sm:w-auto justify-center"
+                 disabled={loading}
+               >
+                 {loading && (
+                   <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                   </svg>
+                 )}
+                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                 <span>Refresh Now</span>
+               </button>
+               <div className="flex items-center space-x-2 text-sm text-gray-600">
+                 <Clock className="h-4 w-4" />
+                 <span>Next refresh: {formatTimeUntilNext()}</span>
+               </div>
+               <label className="flex items-center cursor-pointer">
+                 <input
+                   type="checkbox"
+                   className="sr-only"
+                   checked={autoRefreshEnabled}
+                   onChange={handleAutoRefreshToggle}
+                 />
+                 <div className="relative">
+                   <div className={`block w-10 h-6 rounded-full transition-colors duration-300 ${
+                     autoRefreshEnabled ? 'bg-primary-600' : 'bg-gray-300'
+                   }`}></div>
+                   <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 ${
+                     autoRefreshEnabled ? 'translate-x-4' : ''
+                   }`}></div>
+                 </div>
+                 <span className="ml-2 text-sm">Auto-refresh</span>
+               </label>
+             </div>
+           </div>
+         </div>
         
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center justify-between text-sm text-blue-800">
-            <span>Last updated: {lastRefresh.toLocaleTimeString()}</span>
-            <span>Auto-refresh: {autoRefreshEnabled ? 'ON' : 'OFF'}</span>
-          </div>
-        </div>
+                 {/* Status Bar - Hidden on mobile */}
+         <div className="hidden sm:block mb-4 p-3 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
+           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-blue-800 space-y-1 sm:space-y-0">
+             <span>Last updated: {lastRefresh.toLocaleTimeString()}</span>
+             <span>Auto-refresh: {autoRefreshEnabled ? 'ON' : 'OFF'}</span>
+           </div>
+         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="card p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="card p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-primary-100 rounded-xl">
                 <TrendingUp className="h-6 w-6 text-primary-600" />
@@ -301,7 +317,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="card p-6">
+          <div className="card p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-success-100 rounded-xl">
                 <Users className="h-6 w-6 text-success-600" />
@@ -315,7 +331,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="card p-6">
+          <div className="card p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-warning-100 rounded-xl">
                 <BarChart3 className="h-6 w-6 text-warning-600" />
@@ -329,7 +345,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="card p-6">
+          <div className="card p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-danger-100 rounded-xl">
                 <TrendingUp className="h-6 w-6 text-danger-600" />
@@ -345,15 +361,15 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mb-8">
-          <nav className="flex space-x-1 bg-white p-1 rounded-2xl shadow-soft">
+        <div className="mb-6 sm:mb-8">
+          <nav className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-1 bg-white p-2 sm:p-1 rounded-2xl shadow-soft">
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center justify-center sm:justify-start space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 w-full sm:w-auto ${
                     activeTab === tab.id
                       ? 'bg-primary-100 text-primary-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -368,17 +384,17 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Tab Content */}
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           {activeTab === 'overview' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="card p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+              <div className="card p-4 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Sentiment Timeline
                 </h3>
                 <SentimentTimeline />
               </div>
               
-              <div className="card p-6">
+              <div className="card p-4 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Sentiment Distribution
                 </h3>
@@ -388,7 +404,7 @@ const Dashboard: React.FC = () => {
           )}
 
           {activeTab === 'tweets' && (
-            <div className="card p-6">
+            <div className="card p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Tweets Analysis
               </h3>
@@ -399,7 +415,7 @@ const Dashboard: React.FC = () => {
           
 
           {activeTab === 'custom-search' && (
-            <div className="card p-6">
+            <div className="card p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Custom Search
               </h3>
@@ -407,7 +423,7 @@ const Dashboard: React.FC = () => {
             </div>
           )}
           {activeTab === 'youtube' && (
-            <div className="card p-6">
+            <div className="card p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 YouTube Search
               </h3>
@@ -453,19 +469,19 @@ const CustomSearchTab: React.FC = () => {
 
   return (
     <div className="flex flex-col space-y-4">
-      <div className="flex space-x-2">
-        <input
-          type="text"
-          className="input-field flex-grow"
-          placeholder="Enter your search query..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <button 
-          onClick={handleSearch} 
-          className="btn-primary flex items-center space-x-2"
-          disabled={loading}
-        >
+             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+         <input
+           type="text"
+           className="input-field flex-grow"
+           placeholder="Enter your search query..."
+           value={searchQuery}
+           onChange={(e) => setSearchQuery(e.target.value)}
+         />
+         <button 
+           onClick={handleSearch} 
+           className="btn-primary flex items-center justify-center space-x-2 w-full sm:w-auto"
+           disabled={loading}
+         >
           {loading && (
             <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -580,19 +596,19 @@ const YouTubeSearchTab: React.FC = () => {
 
   return (
     <div className="flex flex-col space-y-4">
-      <div className="flex space-x-2">
-        <input
-          type="text"
-          className="input-field flex-grow"
-          placeholder="Search YouTube videos (e.g., 'latest tech reviews MKBHD' or 'Uganda elections 2025')..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <button 
-          onClick={handleSearch} 
-          className="btn-primary flex items-center space-x-2"
-          disabled={loading}
-        >
+             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+         <input
+           type="text"
+           className="input-field flex-grow"
+           placeholder="Search YouTube videos..."
+           value={searchQuery}
+           onChange={(e) => setSearchQuery(e.target.value)}
+         />
+         <button 
+           onClick={handleSearch} 
+           className="btn-primary flex items-center justify-center space-x-2 w-full sm:w-auto"
+           disabled={loading}
+         >
           {loading && (
             <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
