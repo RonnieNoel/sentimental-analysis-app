@@ -188,7 +188,7 @@ const Dashboard: React.FC = () => {
       const timer = setTimeout(() => {
         try {
           createChat({
-            webhookUrl: 'https://nrm-agent.app.n8n.cloud/webhook/51da722f-7785-479a-a7a5-04175eb3b754/chat'
+            webhookUrl: 'https://sent-agent.app.n8n.cloud/webhook/51da722f-7785-479a-a7a5-04175eb3b754/chat'
           })
           chatCreated = true
         } catch (error) {
@@ -523,7 +523,7 @@ const CustomSearchTab: React.FC = () => {
     setError(null)
     setWebhookResponse(null)
     try {
-      const response = await fetch(`https://nrm-agent.app.n8n.cloud/webhook-test/myagent?message=${encodeURIComponent(searchQuery)}`, {
+      const response = await fetch(`https://sent-agent.app.n8n.cloud/webhook-test/myagent?message=${encodeURIComponent(searchQuery)}`, {
         method: 'GET',
       })
 
@@ -650,7 +650,7 @@ const YouTubeSearchTab: React.FC = () => {
     setError(null)
     setYoutubeResponse(null)
     try {
-      const response = await fetch(`https://nrm-agent.app.n8n.cloud/webhook-test/youtubeagent?message=${encodeURIComponent(searchQuery)}`, {
+      const response = await fetch(`https://sent-agent.app.n8n.cloud/webhook-test/youtubeagent?message=${encodeURIComponent(searchQuery)}`, {
         method: 'GET',
       })
 
