@@ -1,7 +1,7 @@
 // AI Assistant Configuration
 export const AI_ASSISTANT_CONFIG = {
   // Your n8n webhook URL
-  webhookUrl: 'https://nrm-agent.app.n8n.cloud/webhook/51da722f-7785-479a-a7a5-04175eb3b754/chat',
+  webhookUrl: 'https://sent-agent.app.n8n.cloud/webhook/51da722f-7785-479a-a7a5-04175eb3b754/chat',
   
   // Assistant settings
   name: 'Uganda Sentiment AI',
