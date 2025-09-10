@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase'
 import { Tweet, SentimentData, SentimentDistribution } from '../lib/supabase'
 import '@n8n/chat/style.css'
 import { createChat } from '@n8n/chat'
+import { AI_ASSISTANT_CONFIG } from '../config/ai-assistant'
 
 interface AgentTweetResponse {
   "Tweet by": string;
@@ -182,15 +183,51 @@ const Dashboard: React.FC = () => {
   // Handle AI Chat creation and cleanup based on authentication
   useEffect(() => {
     let chatCreated = false
+    let headerOverrideObserver: MutationObserver | null = null
 
     if (user) {
       // Create the chat when user is authenticated with error handling and delay
       const timer = setTimeout(() => {
         try {
           createChat({
-            webhookUrl: 'https://sent-agent.app.n8n.cloud/webhook/51da722f-7785-479a-a7a5-04175eb3b754/chat'
+            webhookUrl: 'http://n8n.nrmcampaign.com:5678/webhook/51da722f-7785-479a-a7a5-04175eb3b754/chat',
+            loadPreviousSession: false,
+            initialMessages: ["I\'m ready to analyze Ugandan political discourse about the NRM and President Museveni. What kind of insights are you looking for today? I can access and analyze tweets, identify sentiment, and track trends."]
           })
           chatCreated = true
+
+          // Try to override the embedded widget header (title/subtitle)
+          const applyHeaderOverride = () => {
+            const root = document.querySelector('#n8n-chat') as HTMLElement | null
+            if (!root) return false
+            const header = root.querySelector('.chat-header') as HTMLElement | null
+            if (!header) return false
+
+            // Title: try h1/h2 or first heading element
+            const titleEl = header.querySelector('h1, h2, .chat-heading, [class*="title"]') as HTMLElement | null
+            if (titleEl) {
+              titleEl.textContent = AI_ASSISTANT_CONFIG.name
+            }
+
+            // Subtitle: prefer p inside header
+            const subtitleEl = header.querySelector('p, [class*="subtitle"], [class*="sub-title"]') as HTMLElement | null
+            if (subtitleEl) {
+              subtitleEl.textContent = AI_ASSISTANT_CONFIG.description
+            }
+            return true
+          }
+
+          // Attempt immediately and then observe DOM mutations for late render
+          let applied = applyHeaderOverride()
+          if (!applied) {
+            headerOverrideObserver = new MutationObserver(() => {
+              if (applyHeaderOverride()) {
+                headerOverrideObserver && headerOverrideObserver.disconnect()
+                headerOverrideObserver = null
+              }
+            })
+            headerOverrideObserver.observe(document.body, { childList: true, subtree: true })
+          }
         } catch (error) {
           console.warn('Failed to create AI chat:', error)
           // Continue without the chat if creation fails
@@ -201,6 +238,10 @@ const Dashboard: React.FC = () => {
       return () => {
         clearTimeout(timer)
         if (chatCreated) {
+          if (headerOverrideObserver) {
+            headerOverrideObserver.disconnect()
+            headerOverrideObserver = null
+          }
           // Remove any existing chat elements
           const chatElements = document.querySelectorAll('[data-n8n-chat]')
           chatElements.forEach(element => element.remove())
