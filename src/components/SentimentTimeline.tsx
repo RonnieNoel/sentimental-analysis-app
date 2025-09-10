@@ -7,7 +7,7 @@ import { format, subDays, startOfDay } from 'date-fns'
 const SentimentTimeline: React.FC = () => {
   const [data, setData] = useState<SentimentData[]>([])
   const [loading, setLoading] = useState(true)
-  const [timeRange, setTimeRange] = useState('7d') // 7d, 30d, 90d
+  const [timeRange, setTimeRange] = useState('30d') // 7d, 30d, 90d
 
   useEffect(() => {
     fetchSentimentData()
@@ -183,3 +183,4 @@ const SentimentTimeline: React.FC = () => {
 }
 
 export default SentimentTimeline
+
