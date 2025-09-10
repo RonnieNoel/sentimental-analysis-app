@@ -7,29 +7,22 @@ import { format } from 'date-fns'
 const TweetsTable: React.FC = () => {
   const [tweets, setTweets] = useState<Tweet[]>([])
   const [loading, setLoading] = useState(true)
-<<<<<<< HEAD
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState<'all' | 'username' | 'date' | 'likes' | 'retweets'>('all')
-=======
   const [tweetQuery, setTweetQuery] = useState('')
   const [userQuery, setUserQuery] = useState('')
   const [sentimentFilter, setSentimentFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
->>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
+  const [engagementType, setEngagementType] = useState('') // likes | retweets | comments
+  const [engagementMin, setEngagementMin] = useState('') // numeric string
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [itemsPerPage] = useState(20)
 
   useEffect(() => {
     fetchTweets()
-<<<<<<< HEAD
-  }, [searchTerm, filterType, currentPage])
-=======
-  }, [tweetQuery, userQuery, sentimentFilter, dateFrom, dateTo, currentPage])
+  }, [tweetQuery, userQuery, sentimentFilter, dateFrom, dateTo, engagementType, engagementMin, currentPage])
 
   // Removed district fetching
->>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
 
   const fetchTweets = async () => {
     try {
@@ -39,66 +32,6 @@ const TweetsTable: React.FC = () => {
         .from('nrm_tweets_kb')
         .select('*', { count: 'exact' })
 
-<<<<<<< HEAD
-      // Apply search based on selected filter type
-      const term = searchTerm.trim()
-      if (term) {
-        if (filterType === 'all') {
-          query = query.or(`text.ilike.%${term}%,username.ilike.%${term}%`)
-        } else if (filterType === 'username') {
-          query = query.ilike('username', `%${term}%`)
-        } else if (filterType === 'date') {
-          // Supported formats: 'YYYY-MM-DD', 'YYYY-MM-DD to YYYY-MM-DD', 'YYYY-MM-DD..YYYY-MM-DD'
-          const toParts = term.includes(' to ') ? term.split(' to ') : term.split('..')
-          if (toParts.length === 2) {
-            const start = new Date(toParts[0])
-            const end = new Date(toParts[1])
-            if (!isNaN(start.getTime())) {
-              query = query.gte('created_at', start.toISOString())
-            }
-            if (!isNaN(end.getTime())) {
-              // include full end day
-              end.setDate(end.getDate() + 1)
-              query = query.lt('created_at', end.toISOString())
-            }
-          } else {
-            const date = new Date(term)
-            if (!isNaN(date.getTime())) {
-              const next = new Date(date)
-              next.setDate(next.getDate() + 1)
-              query = query.gte('created_at', date.toISOString())
-              query = query.lt('created_at', next.toISOString())
-            }
-          }
-        } else if (filterType === 'likes' || filterType === 'retweets') {
-          const column = filterType === 'likes' ? 'like_count' : 'retweet_count'
-          const numRange = term.replace(/\s+/g, '')
-          // Supported: 'min-max', '>=n', '<=n', '>n', '<n', '=n', 'n'
-          let matched = false
-          const rangeMatch = numRange.match(/^(\d+)[-](\d+)$/)
-          if (rangeMatch) {
-            const min = parseInt(rangeMatch[1], 10)
-            const max = parseInt(rangeMatch[2], 10)
-            if (!isNaN(min)) query = query.gte(column, min)
-            if (!isNaN(max)) query = query.lte(column, max)
-            matched = true
-          }
-          if (!matched) {
-            const opMatch = numRange.match(/^(>=|<=|>|<|=)?(\d+)$/)
-            if (opMatch) {
-              const op = opMatch[1] || '='
-              const val = parseInt(opMatch[2], 10)
-              if (!isNaN(val)) {
-                if (op === '>=') query = query.gte(column, val)
-                else if (op === '<=') query = query.lte(column, val)
-                else if (op === '>') query = query.gt(column, val)
-                else if (op === '<') query = query.lt(column, val)
-                else query = query.eq(column, val)
-              }
-            }
-          }
-        }
-=======
       // Apply tweet text filter
       if (tweetQuery) {
         query = query.ilike('text', `%${tweetQuery}%`)
@@ -107,7 +40,6 @@ const TweetsTable: React.FC = () => {
       // Apply user filter
       if (userQuery) {
         query = query.ilike('username', `%${userQuery}%`)
->>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
       }
 
       // Apply sentiment filter
@@ -125,6 +57,22 @@ const TweetsTable: React.FC = () => {
         // set to end of day for inclusive filter
         toDate.setHours(23, 59, 59, 999)
         query = query.lte('created_at', toDate.toISOString())
+      }
+
+      // Apply engagement filter
+      if (engagementType && engagementMin) {
+        const minVal = Number(engagementMin)
+        if (!Number.isNaN(minVal)) {
+          const columnMap: Record<string, string> = {
+            likes: 'like_count',
+            retweets: 'retweet_count',
+            comments: 'reply_count'
+          }
+          const column = columnMap[engagementType]
+          if (column) {
+            query = query.gte(column, minVal)
+          }
+        }
       }
 
       // District filter removed
@@ -168,11 +116,6 @@ const TweetsTable: React.FC = () => {
     setCurrentPage(1)
   }
 
-<<<<<<< HEAD
-  const clearFilters = () => {
-    setSearchTerm('')
-    setFilterType('all')
-=======
   // District selection removed
 
   const clearFilters = () => {
@@ -181,7 +124,8 @@ const TweetsTable: React.FC = () => {
     setSentimentFilter('')
     setDateFrom('')
     setDateTo('')
->>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
+    setEngagementType('')
+    setEngagementMin('')
     setCurrentPage(1)
   }
 
@@ -202,23 +146,10 @@ const TweetsTable: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
-<<<<<<< HEAD
-              placeholder={
-                filterType === 'all' ? 'Search tweets or usernames...'
-                : filterType === 'username' ? 'Search by username...'
-                : filterType === 'date' ? 'Date (YYYY-MM-DD or YYYY-MM-DD to YYYY-MM-DD)'
-                : filterType === 'likes' ? 'Likes (e.g., 10-100, >=50)'
-                : 'Retweets (e.g., 10-100, >=50)'
-              }
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field pl-10"
-=======
               placeholder="Filter by tweet text..."
               value={tweetQuery}
               onChange={(e) => setTweetQuery(e.target.value)}
               className="input-field pl-10 w-full"
->>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
             />
           </div>
 
@@ -259,33 +190,32 @@ const TweetsTable: React.FC = () => {
               className="input-field w-full"
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-2 min-w-0">
+            <select
+              value={engagementType}
+              onChange={(e) => setEngagementType(e.target.value)}
+              className="input-field w-full"
+            >
+              <option value="">Engagement type</option>
+              <option value="likes">Likes</option>
+              <option value="retweets">Retweets</option>
+              <option value="comments">Comments</option>
+            </select>
+            <input
+              type="number"
+              min="0"
+              placeholder="Min count"
+              value={engagementMin}
+              onChange={(e) => setEngagementMin(e.target.value)}
+              className="input-field w-full"
+            />
+          </div>
         </div>
 
-<<<<<<< HEAD
-        <div className="flex gap-2 items-center">
-          <select
-            value={filterType}
-            onChange={(e) => { setFilterType(e.target.value as any); setCurrentPage(1) }}
-            className="input-field min-w-[160px]"
-          >
-            <option value="all">All</option>
-            <option value="username">Username</option>
-            <option value="date">Date</option>
-            <option value="likes">Likes</option>
-            <option value="retweets">Retweets</option>
-          </select>
-
-          <button
-            onClick={clearFilters}
-            className="btn-secondary"
-          >
-            Clear
-          </button>
-=======
         <div className="flex gap-2">
           <button type="submit" className="btn-primary">Apply</button>
           <button type="button" onClick={clearFilters} className="btn-secondary">Clear</button>
->>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
         </div>
       </form>
 
@@ -293,14 +223,11 @@ const TweetsTable: React.FC = () => {
       <div className="flex justify-between items-center text-sm text-gray-600">
         <span>
           Showing {tweets.length} tweets
-<<<<<<< HEAD
-          {searchTerm && ` for "${searchTerm}"`}
-=======
           {tweetQuery && ` for tweet "${tweetQuery}"`}
           {userQuery && ` by user "${userQuery}"`}
           {sentimentFilter && ` with sentiment ${sentimentFilter}`}
           {(dateFrom || dateTo) && ` between ${dateFrom || '...'} and ${dateTo || '...'}`}
->>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
+          {(engagementType && engagementMin) && ` with ${engagementType} ≥ ${engagementMin}`}
         </span>
         <span>Page {currentPage} of {totalPages}</span>
       </div>

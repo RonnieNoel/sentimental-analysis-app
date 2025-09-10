@@ -1,10 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-<<<<<<< HEAD
-import { LogOut, Search, Filter, TrendingUp, Users, MapPin, BarChart3, MonitorPlay, CheckCircle } from 'lucide-react'
-=======
-import { LogOut, Search, Filter, TrendingUp, Users, BarChart3, MonitorPlay } from 'lucide-react'
->>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
+import { LogOut, Search, TrendingUp, Users, BarChart3, MonitorPlay, RefreshCw, Clock } from 'lucide-react'
 import SentimentTimeline from '../components/SentimentTimeline'
 import SentimentPieChart from '../components/SentimentPieChart'
 import TweetsTable from '../components/TweetsTable'
@@ -12,6 +8,8 @@ import TweetsTable from '../components/TweetsTable'
 // import AIAssistant from '../components/AIAssistant'
 import { supabase } from '../lib/supabase'
 import { Tweet, SentimentData, SentimentDistribution } from '../lib/supabase'
+import '@n8n/chat/style.css'
+import { createChat } from '@n8n/chat'
 
 interface AgentTweetResponse {
   "Tweet by": string;
@@ -29,16 +27,82 @@ const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(true)
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date())
+  const [nextRefresh, setNextRefresh] = useState<Date>(new Date())
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
+  const [refreshInterval, setRefreshInterval] = useState(300000) // 5 minutes default
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [stats, setStats] = useState({
     totalTweets: 0,
     totalUsers: 0,
     averageSentiment: 0,
-    factCheckedTweets: 0
+    factChecked: 0
   })
 
   useEffect(() => {
     fetchDashboardStats()
-  }, [])
+    
+    // Set up auto-refresh
+    if (autoRefreshEnabled) {
+      startAutoRefresh()
+    }
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current)
+      }
+    }
+  }, [autoRefreshEnabled, refreshInterval])
+
+  const startAutoRefresh = () => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
+    }
+    
+    if (autoRefreshEnabled) {
+      refreshIntervalRef.current = setInterval(() => {
+        fetchDashboardStats()
+      }, refreshInterval)
+      
+      // Calculate next refresh time
+      const next = new Date(Date.now() + refreshInterval)
+      setNextRefresh(next)
+    }
+  }
+
+  const stopAutoRefresh = () => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
+      refreshIntervalRef.current = null
+    }
+  }
+
+  const handleAutoRefreshToggle = () => {
+    const newState = !autoRefreshEnabled
+    setAutoRefreshEnabled(newState)
+    
+    if (newState) {
+      startAutoRefresh()
+    } else {
+      stopAutoRefresh()
+    }
+  }
+
+  const handleManualRefresh = async () => {
+    await fetchDashboardStats()
+  }
+
+  const formatTimeUntilNext = () => {
+    const now = new Date()
+    const diff = nextRefresh.getTime() - now.getTime()
+    
+    if (diff <= 0) return 'Refreshing...'
+    
+    const minutes = Math.floor(diff / 60000)
+    const seconds = Math.floor((diff % 60000) / 1000)
+    
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
 
   const fetchDashboardStats = async () => {
     try {
@@ -86,14 +150,105 @@ const Dashboard: React.FC = () => {
         totalTweets: tweetsCount || 0,
         totalUsers: usersCount || 0,
         averageSentiment: Math.round(avgSentiment * 100) / 100,
-        factCheckedTweets: factCheckedCount || 0
+        factChecked: factCheckedCount || 0
       })
+      
+      setLastRefresh(new Date())
+      
+      // Update next refresh time
+      if (autoRefreshEnabled) {
+        const next = new Date(Date.now() + refreshInterval)
+        setNextRefresh(next)
+      }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error)
     } finally {
       setLoading(false)
     }
   }
+
+  // Update countdown timer every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (autoRefreshEnabled) {
+        // Force re-render to update countdown
+        setNextRefresh(prev => new Date(prev.getTime()))
+      }
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [autoRefreshEnabled])
+
+  // Handle AI Chat creation and cleanup based on authentication
+  useEffect(() => {
+    let chatCreated = false
+
+    if (user) {
+      // Create the chat when user is authenticated with error handling and delay
+      const timer = setTimeout(() => {
+        try {
+          createChat({
+            webhookUrl: 'https://sent-agent.app.n8n.cloud/webhook/51da722f-7785-479a-a7a5-04175eb3b754/chat'
+          })
+          chatCreated = true
+        } catch (error) {
+          console.warn('Failed to create AI chat:', error)
+          // Continue without the chat if creation fails
+        }
+      }, 1000) // Delay chat creation by 1 second to let the page fully load
+
+      // Cleanup timer if component unmounts
+      return () => {
+        clearTimeout(timer)
+        if (chatCreated) {
+          // Remove any existing chat elements
+          const chatElements = document.querySelectorAll('[data-n8n-chat]')
+          chatElements.forEach(element => element.remove())
+          
+          // Remove any chat-related elements
+          const chatContainers = document.querySelectorAll('.n8n-chat-container, [id*="n8n-chat"]')
+          chatContainers.forEach(element => element.remove())
+          
+          // Remove any iframes or other chat elements
+          const iframes = document.querySelectorAll('iframe[src*="n8n"]')
+          iframes.forEach(iframe => iframe.remove())
+          
+          // Remove any chat widgets by class or ID patterns
+          const chatWidgets = document.querySelectorAll('[class*="chat"], [id*="chat"]')
+          chatWidgets.forEach(widget => {
+            if (widget.innerHTML.includes('n8n') || widget.innerHTML.includes('chat')) {
+              widget.remove()
+            }
+          })
+        }
+      }
+    }
+
+    // Cleanup function for when user logs out
+    return () => {
+      if (chatCreated) {
+        // Remove any existing chat elements
+        const chatElements = document.querySelectorAll('[data-n8n-chat]')
+        chatElements.forEach(element => element.remove())
+        
+        // Remove any chat-related elements
+        const chatContainers = document.querySelectorAll('.n8n-chat-container, [id*="n8n-chat"]')
+        chatContainers.forEach(element => element.remove())
+        
+        // Remove any iframes or other chat elements
+        const iframes = document.querySelectorAll('iframe[src*="n8n"]')
+        iframes.forEach(iframe => iframe.remove())
+        
+        // Remove any chat widgets by class or ID patterns
+        const chatWidgets = document.querySelectorAll('[class*="chat"], [id*="chat"]')
+        chatWidgets.forEach(widget => {
+          if (widget.innerHTML.includes('n8n') || widget.innerHTML.includes('chat')) {
+            widget.remove()
+          }
+        })
+      }
+    }
+  }, [user])
 
   const handleSignOut = async () => {
     await signOut()
@@ -108,38 +263,120 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-soft border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <TrendingUp className="h-8 w-8 text-primary-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">
-                Uganda Sentiment Dashboard
-              </h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Welcome, {user?.email}
-              </span>
-              <button
-                onClick={handleSignOut}
-                className="btn-secondary flex items-center space-x-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Sign Out</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+             {/* Header */}
+       <header className="bg-white shadow-soft border-b border-gray-100">
+         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+           <div className="flex justify-between items-center h-16 py-4 sm:py-0">
+             <div className="flex items-center">
+               <TrendingUp className="h-8 w-8 text-primary-600 mr-3" />
+               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                 Sentiment Dashboard
+               </h1>
+             </div>
+             
+             {/* Mobile: Just logout icon, Desktop: Full logout button with email */}
+             <div className="flex items-center space-x-4">
+               {/* Email - hidden on mobile */}
+               <span className="hidden sm:block text-sm text-gray-600">
+                  {user?.email}
+               </span>
+               
+               {/* Mobile: Icon only, Desktop: Full button */}
+               <button
+                 onClick={handleSignOut}
+                 className="sm:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                 title="Sign Out"
+               >
+                 <LogOut className="h-5 w-5" />
+               </button>
+               
+               {/* Desktop: Full button */}
+               <button
+                 onClick={handleSignOut}
+                 className="hidden sm:flex btn-secondary items-center space-x-2"
+               >
+                 <LogOut className="h-4 w-4" />
+                 <span>Sign Out</span>
+               </button>
+             </div>
+           </div>
+         </div>
+       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+                 {/* Refresh Controls - Hidden on mobile */}
+         <div className="hidden sm:block">
+           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 sm:mb-6 space-y-4 lg:space-y-0">
+             <h3 className="text-lg font-semibold text-gray-900">
+               Refresh Controls
+             </h3>
+             <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+               <div className="flex items-center space-x-2">
+                 <label className="text-sm text-gray-600">Interval:</label>
+                 <select
+                   value={refreshInterval}
+                   onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                   className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                   disabled={!autoRefreshEnabled}
+                 >
+                   <option value={60000}>1 minute</option>
+                   <option value={300000}>5 minutes</option>
+                   <option value={600000}>10 minutes</option>
+                   <option value={1800000}>30 minutes</option>
+                   <option value={3600000}>1 hour</option>
+                 </select>
+               </div>
+               <button
+                 onClick={handleManualRefresh}
+                 className="btn-primary flex items-center space-x-2 w-full sm:w-auto justify-center"
+                 disabled={loading}
+               >
+                 {loading && (
+                   <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                   </svg>
+                 )}
+                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                 <span>Refresh Now</span>
+               </button>
+               <div className="flex items-center space-x-2 text-sm text-gray-600">
+                 <Clock className="h-4 w-4" />
+                 <span>Next refresh: {formatTimeUntilNext()}</span>
+               </div>
+               <label className="flex items-center cursor-pointer">
+                 <input
+                   type="checkbox"
+                   className="sr-only"
+                   checked={autoRefreshEnabled}
+                   onChange={handleAutoRefreshToggle}
+                 />
+                 <div className="relative">
+                   <div className={`block w-10 h-6 rounded-full transition-colors duration-300 ${
+                     autoRefreshEnabled ? 'bg-primary-600' : 'bg-gray-300'
+                   }`}></div>
+                   <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-300 ${
+                     autoRefreshEnabled ? 'translate-x-4' : ''
+                   }`}></div>
+                 </div>
+                 <span className="ml-2 text-sm">Auto-refresh</span>
+               </label>
+             </div>
+           </div>
+         </div>
+        
+                 {/* Status Bar - Hidden on mobile */}
+         <div className="hidden sm:block mb-4 p-3 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
+           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-blue-800 space-y-1 sm:space-y-0">
+             <span>Last updated: {lastRefresh.toLocaleTimeString()}</span>
+             <span>Auto-refresh: {autoRefreshEnabled ? 'ON' : 'OFF'}</span>
+           </div>
+         </div>
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="card p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="card p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-primary-100 rounded-xl">
                 <TrendingUp className="h-6 w-6 text-primary-600" />
@@ -153,7 +390,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="card p-6">
+          <div className="card p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-success-100 rounded-xl">
                 <Users className="h-6 w-6 text-success-600" />
@@ -167,7 +404,7 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="card p-6">
+          <div className="card p-4 sm:p-6">
             <div className="flex items-center">
               <div className="p-2 bg-warning-100 rounded-xl">
                 <BarChart3 className="h-6 w-6 text-warning-600" />
@@ -181,20 +418,15 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="card p-6">
+          <div className="card p-4 sm:p-6">
             <div className="flex items-center">
-<<<<<<< HEAD
-              <div className="p-2 bg-primary-100 rounded-xl">
-                <CheckCircle className="h-6 w-6 text-primary-600" />
-=======
               <div className="p-2 bg-danger-100 rounded-xl">
                 <TrendingUp className="h-6 w-6 text-danger-600" />
->>>>>>> a1974be (removed the districts from the twitter tab and updated filter)
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Fact-checked Tweets</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {loading ? '...' : stats.factCheckedTweets.toLocaleString()}
+                  {loading ? '...' : stats.factChecked.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -202,15 +434,15 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="mb-8">
-          <nav className="flex space-x-1 bg-white p-1 rounded-2xl shadow-soft">
+        <div className="mb-6 sm:mb-8">
+          <nav className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-1 bg-white p-2 sm:p-1 rounded-2xl shadow-soft">
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center justify-center sm:justify-start space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 w-full sm:w-auto ${
                     activeTab === tab.id
                       ? 'bg-primary-100 text-primary-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -225,17 +457,17 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Tab Content */}
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           {activeTab === 'overview' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="card p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+              <div className="card p-4 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Sentiment Timeline
                 </h3>
                 <SentimentTimeline />
               </div>
               
-              <div className="card p-6">
+              <div className="card p-4 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                   Sentiment Distribution
                 </h3>
@@ -245,7 +477,7 @@ const Dashboard: React.FC = () => {
           )}
 
           {activeTab === 'tweets' && (
-            <div className="card p-6">
+            <div className="card p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Tweets Analysis
               </h3>
@@ -256,7 +488,7 @@ const Dashboard: React.FC = () => {
           
 
           {activeTab === 'custom-search' && (
-            <div className="card p-6">
+            <div className="card p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Custom Search
               </h3>
@@ -264,7 +496,7 @@ const Dashboard: React.FC = () => {
             </div>
           )}
           {activeTab === 'youtube' && (
-            <div className="card p-6">
+            <div className="card p-4 sm:p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 YouTube Search
               </h3>
@@ -291,7 +523,7 @@ const CustomSearchTab: React.FC = () => {
     setError(null)
     setWebhookResponse(null)
     try {
-      const response = await fetch(`https://nrm-agent.app.n8n.cloud/webhook/myagent?message=${encodeURIComponent(searchQuery)}`, {
+      const response = await fetch(`https://sent-agent.app.n8n.cloud/webhook-test/myagent?message=${encodeURIComponent(searchQuery)}`, {
         method: 'GET',
       })
 
@@ -310,19 +542,19 @@ const CustomSearchTab: React.FC = () => {
 
   return (
     <div className="flex flex-col space-y-4">
-      <div className="flex space-x-2">
-        <input
-          type="text"
-          className="input-field flex-grow"
-          placeholder="Enter your search query..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <button 
-          onClick={handleSearch} 
-          className="btn-primary flex items-center space-x-2"
-          disabled={loading}
-        >
+             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+         <input
+           type="text"
+           className="input-field flex-grow"
+           placeholder="Enter your search query..."
+           value={searchQuery}
+           onChange={(e) => setSearchQuery(e.target.value)}
+         />
+         <button 
+           onClick={handleSearch} 
+           className="btn-primary flex items-center justify-center space-x-2 w-full sm:w-auto"
+           disabled={loading}
+         >
           {loading && (
             <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -418,7 +650,7 @@ const YouTubeSearchTab: React.FC = () => {
     setError(null)
     setYoutubeResponse(null)
     try {
-      const response = await fetch(`https://nrm-agent.app.n8n.cloud/webhook-test/youtubeagent?message=${encodeURIComponent(searchQuery)}`, {
+      const response = await fetch(`https://sent-agent.app.n8n.cloud/webhook-test/youtubeagent?message=${encodeURIComponent(searchQuery)}`, {
         method: 'GET',
       })
 
@@ -437,19 +669,19 @@ const YouTubeSearchTab: React.FC = () => {
 
   return (
     <div className="flex flex-col space-y-4">
-      <div className="flex space-x-2">
-        <input
-          type="text"
-          className="input-field flex-grow"
-          placeholder="Search YouTube videos (e.g., 'latest tech reviews MKBHD' or 'Uganda elections 2025')..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <button 
-          onClick={handleSearch} 
-          className="btn-primary flex items-center space-x-2"
-          disabled={loading}
-        >
+             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+         <input
+           type="text"
+           className="input-field flex-grow"
+           placeholder="Search YouTube videos..."
+           value={searchQuery}
+           onChange={(e) => setSearchQuery(e.target.value)}
+         />
+         <button 
+           onClick={handleSearch} 
+           className="btn-primary flex items-center justify-center space-x-2 w-full sm:w-auto"
+           disabled={loading}
+         >
           {loading && (
             <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
