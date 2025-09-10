@@ -14,7 +14,7 @@ const zlib = require('zlib');
 const BUILD_DIR = path.resolve(__dirname, 'build');
 const INDEX_FILE = path.join(BUILD_DIR, 'index.html');
 
-const PORT = process.env.PORT || 3000; // On cPanel, set this in the app config
+const PORT = process.env.PORT || 5000; 
 const HOST = process.env.HOST || '0.0.0.0';
 
 const MIME_TYPES = {
