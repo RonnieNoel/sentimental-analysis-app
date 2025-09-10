@@ -1,11 +1,11 @@
 // AI Assistant Configuration
 export const AI_ASSISTANT_CONFIG = {
   // Your n8n webhook URL
-  webhookUrl: 'https://sent-agent.app.n8n.cloud/webhook/51da722f-7785-479a-a7a5-04175eb3b754/chat',
+  webhookUrl: 'http://n8n.nrmcampaign.com:5678/webhook/51da722f-7785-479a-a7a5-04175eb3b754/chat',
   
   // Assistant settings
-  name: 'Uganda Sentiment AI',
-  description: 'AI Assistant for Uganda Political Sentiment Analysis',
+  name: 'Hi there!  👋',
+  description: 'I\'m Nathan,  here to help you 24/7.',
   
   // UI settings
   position: {
@@ -20,7 +20,7 @@ export const AI_ASSISTANT_CONFIG = {
   },
   
   // Welcome message
-  welcomeMessage: "Hello! I'm your AI assistant for Uganda sentiment analysis. Ask me anything about the political sentiment data, trends, or insights!",
+  welcomeMessage: "Hello! I'm your NRM Campaign Agent for sentiment analysis. Ask me anything about twhat people are saying about the NRM Campaign, trends, or insights!",
   
   // Error messages
   errorMessages: {

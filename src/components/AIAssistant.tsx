@@ -148,7 +148,7 @@ const AIAssistant: React.FC = () => {
                 <MessageCircle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                 <p className="text-sm">{AI_ASSISTANT_CONFIG.welcomeMessage}</p>
                 <p className="text-xs mt-2 text-gray-400">
-                  Try asking: "What's the current sentiment trend?" or "Show me district analysis"
+                  Try asking: "What's the current sentiment trend?"
                 </p>
               </div>
             )}
