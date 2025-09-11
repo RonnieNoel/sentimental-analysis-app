@@ -564,7 +564,7 @@ const CustomSearchTab: React.FC = () => {
     setError(null)
     setWebhookResponse(null)
     try {
-      const response = await fetch(`https://sent-agent.app.n8n.cloud/webhook-test/myagent?message=${encodeURIComponent(searchQuery)}`, {
+      const response = await fetch(`${AI_ASSISTANT_CONFIG.customSearchWebhookUrl}?message=${encodeURIComponent(searchQuery)}`, {
         method: 'GET',
       })
 
@@ -691,7 +691,7 @@ const YouTubeSearchTab: React.FC = () => {
     setError(null)
     setYoutubeResponse(null)
     try {
-      const response = await fetch(`https://sent-agent.app.n8n.cloud/webhook-test/youtubeagent?message=${encodeURIComponent(searchQuery)}`, {
+      const response = await fetch(`${AI_ASSISTANT_CONFIG.youtubeWebhookUrl}?message=${encodeURIComponent(searchQuery)}`, {
         method: 'GET',
       })
 
